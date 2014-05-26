@@ -5,7 +5,7 @@ class Movie < ActiveRecord::Base
 	  find(:all,
 			 :select => "DISTINCT(rating)",
 			 :order => "rating ASC").map(&:rating)
+			 
   end
-
 
 end

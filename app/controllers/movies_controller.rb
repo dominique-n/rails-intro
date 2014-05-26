@@ -1,6 +1,8 @@
 class MoviesController < ApplicationController
 	#include Movies::IndexTools
-	include MoviesHelper
+	include MoviesHelper::MoviesController
+
+	#session :on
 
 	def show
 		id = params[:id] # retrieve movie ID from URI route
@@ -11,27 +13,43 @@ class MoviesController < ApplicationController
 	def index
 
 		logger.info "--PARAMS = #{params}"
-		@movies = Movie.select("*")
-
-		##sort ascending per title or release_date
-		@decor_title = nil 
-		@decor_release_date = nil 
-		if !params[:sorted_by].nil?
-			instance_variable_set("@decor_#{params[:sorted_by]}", "hilite")
-			@movies = @movies.order("#{params[:sorted_by]} ASC")
-		end
-
-		##restrict to selected ratings
+		logger.info "--SESSION = #{session.empty?}"
+		logger.info "--FLASH = #{flash.empty?}"
+		
+		#no-cookied hit
 		@box_states = Hash.new(0)
 		@all_ratings = Movie.ratings_uniq_get
 		@all_ratings.each{|r| @box_states[r]=1}
-		if params[:ratings].nil? && params[:commit] == "Refresh"
-			@box_states.each{|k,v| @box_states[k]=0}
-			@movies = []
-		elsif !params[:ratings].nil?
-			@movies = @movies.where(where_or_string(:rating, params[:ratings].keys.length), *params[:ratings].keys)
-			@box_states.each{|k,v| @box_states[k] = 0 if !params[:ratings].has_key?(k)}
+		@movies = Movie.select("*")
+
+		if session.empty?
+			logger.info "--INTO EMPTY SESSION"
+			session[:sorted_by] = "none"
+			session[:ratings] = @box_states
+			logger.info "--INTO EMPTY SESSION - session = #{session}"
+			return
 		end
+
+		#test params completeness else redirect with updated params <- session
+		if params[:sorted_by].nil? || params[:ratings].nil?
+			params[:sorted_by] = session[:sorted_by] if params[:sorted_by].nil?
+			params[:ratings] = session[:ratings] if params[:ratings].nil?
+			redirect_to movies_path(params)
+		end
+
+		##sort ascending per title or release_date
+
+		@decor_title = nil 
+		@decor_release_date = nil 
+		if params[:sorted_by] != "none"
+			instance_variable_set("@decor_#{params[:sorted_by]}", "hilite")
+			@movies = @movies.order("#{params[:sorted_by]} ASC")
+			session[:sorted_by] = params[:sorted_by]
+		end
+
+		@movies = @movies.where(where_or_string(:rating, params[:ratings].keys.length), *params[:ratings].keys)
+		@box_states.each{|k,v| @box_states[k] = 0 if !params[:ratings].has_key?(k)}
+		session[:ratings] = params[:ratings]
 	end
 
 	def new

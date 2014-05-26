@@ -4,9 +4,11 @@ module MoviesHelper
     count.odd? ?  "odd" :  "even"
   end
 
-  def where_or_string(attr_name, n_values)
-	  (1..n_values).map do |v|
-		  "#{attr_name} = ?"
-	  end.join(" OR ")
+  module MoviesController
+	  def where_or_string(attr_name, n_values)
+		  (1..n_values).map do |v|
+			  "#{attr_name} = ?"
+		  end.join(" OR ")
+	  end
   end
 end
