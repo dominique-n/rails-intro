@@ -3,12 +3,12 @@
 
 -logger.debug("--HAML REACTS")
 
-= form_tag movies_path, :method => :get do
+= form_tag movies_path, :method => :get, id: :ratings_form do
   Include:
   - @all_ratings.each do |rating|
     = rating
-    = check_box_tag "ratings[#{rating}]","", @box_states[rating]==1
-  = submit_tag 'Refresh'
+    = check_box_tag "ratings[#{rating}]","", @box_states[rating]==1, id: "ratings_#{rating}"
+  = submit_tag 'Refresh', id: :ratings_submit
 
 %table#movies
   %thead
