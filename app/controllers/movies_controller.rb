@@ -1,6 +1,6 @@
 class MoviesController < ApplicationController
 	#include Movies::IndexTools
-	#include MoviesHelper
+	include MoviesHelper
 
 	def show
 		id = params[:id] # retrieve movie ID from URI route
@@ -9,13 +9,28 @@ class MoviesController < ApplicationController
 	end
 
 	def index
+
+		logger.info "--PARAMS = #{params}"
 		@movies = Movie.select("*")
 
-		@decor_title = nil
-		@decor_release_date = nil
+		##sort ascending per title or release_date
+		@decor_title = nil 
+		@decor_release_date = nil 
 		if !params[:sorted_by].nil?
 			instance_variable_set("@decor_#{params[:sorted_by]}", "hilite")
 			@movies = @movies.order("#{params[:sorted_by]} ASC")
+		end
+
+		##restrict to selected ratings
+		@box_states = Hash.new(0)
+		@all_ratings = Movie.ratings_uniq_get
+		@all_ratings.each{|r| @box_states[r]=1}
+		if params[:ratings].nil? && params[:commit] == "Refresh"
+			@box_states.each{|k,v| @box_states[k]=0}
+			@movies = []
+		elsif !params[:ratings].nil?
+			@movies = @movies.where(where_or_string(:rating, params[:ratings].keys.length), *params[:ratings].keys)
+			@box_states.each{|k,v| @box_states[k] = 0 if !params[:ratings].has_key?(k)}
 		end
 	end
 
